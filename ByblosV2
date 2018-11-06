@@ -1,0 +1,113 @@
+from xml.etree.ElementTree import Element, SubElement, Comment, tostring
+import xlrd as pd
+import lxml.etree
+import xml.etree.cElementTree as ET
+#append all the securityObjective of the csv file name in a list
+def listes():
+    path=r"C:\Users\RAL-lab\Desktop\ReviewByblos Project\test.xlsx"
+    book = pd.open_workbook(path)
+    first_sheet = book.sheet_by_index(0)
+    LIST=[]
+    for i in range (1 ,first_sheet.nrows):
+        if (first_sheet.row_values(i)[0]!= '' )and (first_sheet.row_values(i)[0]!= ' ') :
+            LIST.append(first_sheet.row_values(i)[0])
+    # eliminate duplicate value in the list
+    a=list(set(LIST))
+    print(a)
+    return(a)
+def EXCELTOXML() :
+    Listes=listes()
+    print((Listes))
+    # lists=["SecureCommunication","AccessControl","SecurityAudit","Identification&Authentification","SecurityManagement","Strongcryptography","Strongcryptography_App_Side","SecureStorage","Privacy","Conf&IntegofDataInProcess","SecureUpdate","SecureCommunication_App_Side","PhysicalSecurity"]
+    exel_path=input('|----> pls enter your Excel(xlsx) file Path: ')
+    #Open xlsx file
+    book = pd.open_workbook(exel_path)
+    #pick the first xlsx sheet
+    first_sheet = book.sheet_by_index(0)
+    # root tag of the xml file
+    requirements= Element('Requirements')
+    # create subelement of the root tag this tag contains all security objectives in the listes
+    security_objectives = SubElement(requirements, 'Security_Objectives')
+
+    for i in Listes :
+
+        security_objective = SubElement(security_objectives, "Security_Objective")
+        security_objective.set('name', i)
+        # security_objective.text = i
+
+
+        for row in range(1, first_sheet.nrows):
+            #list contains Directly-required values
+            pico=[]
+            #list contains indirectly_required values
+            pico2=[]
+            #list contains Optionally-required values
+            pico3=[]
+
+            if first_sheet.row_values(row)[0]== i :
+                print("ok")
+                #fill each list with it value from csv file
+                pico.append(first_sheet.row_values(row)[3])
+                pico2.append(first_sheet.row_values(row)[4])
+                pico3.append(first_sheet.row_values(row)[5])
+                # if pico,pico2,pico3 contain mutliple values they will splited by "\n" and putet on a list directly,indirectly,optional
+                directly = pico[0].split("\n")
+                indirectly = pico2[0].split("\n")
+                optional = pico3[0].split("\n")
+                #create "Requirement" tag under "security_objective tag"
+                requirement = SubElement(security_objective, "Requirement")
+                requirement.set("Family_id", first_sheet.row_values(row)[1])
+                #if this requirement contains directly dependencies with other requirement we create Dependencies type="Directly-required"
+                if pico and pico != [""]:
+                    dependencies = SubElement(requirement, "Dependencies")
+                    dependencies.set('type', "Directly-required")
+                    #if the list directly multiple values for each value we create tag <Dependency Family_id="value of the element of the directly list">
+                    for j in directly:
+
+                        dependency = SubElement(dependencies, "Dependency")
+                        dependency.set('Family_id', j)
+                #if this requirement contains indirectly dependencies with other requirement we create <Dependencies type="indirectly-required">
+                if pico2 and pico2 != [""]:
+                    dependencies = SubElement(requirement, "Dependencies")
+                    dependencies.set('type', "indirectly-required")
+
+                    for h in indirectly:
+
+                        dependency = SubElement(dependencies, "Dependency")
+                        dependency.set('Family_id', h)
+                # if this requirement contains optional dependencies with other requirement we create <Dependencies type="indirectly-required">
+                if pico3 and pico3 != [""]:
+                    dependencies = SubElement(requirement, "Dependencies")
+                    dependencies.set('type', "optional-required")
+                    # if the list optional contains multiple values for each value we create tag <Dependency Family_id="value of the element of the directly list">
+                    for k in optional:
+
+                        dependency=SubElement(dependencies, "Dependency")
+                        dependency.set('Family_id', k)
+
+                #Description contains the requirement's description in column of the csv file
+                Description=SubElement(requirement,"Description")
+                Description.text=first_sheet.row_values(row)[2]
+                print(pico)
+                print(pico2)
+                print(pico3)
+                print(directly)
+            else:
+                pico.append(first_sheet.row_values(row)[3])
+                pico2.append(first_sheet.row_values(row)[4])
+                pico3.append(first_sheet.row_values(row)[5])
+                ax = pico[0].split("\n")
+                print("false")
+                print(pico)
+                print(pico2)
+                print(pico3)
+                print(ax)
+
+            print(tostring(requirements))
+        #regroupe all the tag
+        tree = ET.ElementTree(requirements)
+        #create the xml file 
+        tree.write("ByblosV2.xml")
+
+# listes()
+EXCELTOXML()
